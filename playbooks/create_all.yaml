@@ -1,0 +1,12 @@
+# GHG0004
+- import_playbook: create_vpc.yaml
+- import_playbook: create_acl.yaml
+- import_playbook: create_gw_rtb.yaml
+- import_playbook: create_sgs.yaml
+- import_playbook: create_db.yaml
+- import_playbook: create_role.yaml
+- import_playbook: add_secret.yaml
+- import_playbook: create_lb.yaml
+- import_playbook: list_buckets.yaml
+- import_playbook: create_lt.yaml
+- import_playbook: create_asg.yaml

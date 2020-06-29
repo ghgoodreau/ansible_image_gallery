@@ -1,0 +1,22 @@
+---
+- hosts: localhost
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - name: Create ASG
+      ec2_asg:
+        name: m5-ig-asg-2
+        health_check_type: ELB
+        availability_zones: [ 'us-east-2a', 'us-east-2b' ]
+        launch_template:
+            launch_template_name: m5_lt
+        min_size: 2
+        max_size: 4
+        desired_capacity: 2
+        vpc_zone_identifier: '{{ public_sn_1.subnet.id }}, {{public_sn_2.subnet.id }}'
+        replace_all_instances: yes
+        replace_batch_size: 4
+        target_group_arns: '{{ m5_tg.target_group_arn }}'
+        state: present

@@ -1,0 +1,48 @@
+# creates and configures the database
+---
+- hosts: localhost
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - name: Create RDS SN Group
+      rds_subnet_group:
+        state: present
+        name: M5-db-sn-grp
+        description: M5 subnet group for Postgres
+        subnets:
+          - "{{ private_sn_1.subnet.id }}"
+          - "{{ private_sn_2.subnet.id }}"
+      register: subnet_group
+
+    - debug:
+        var: subnet_group
+
+    - local_action:
+         module: rds
+         command: restore
+         snapshot: m5rdssnapshot
+         instance_name: m5ig-db
+         region: us-east-2
+         zone: us-east-2a
+         subnet: "{{subnet_group.subnet_group.name }}"
+         publicly_accessible: yes
+         wait: yes
+         wait_timeout: 600
+         tags:
+             Name: m5-db-ansible
+      register: rds_restored
+
+    - debug:
+        var: rds_restored
+
+    - local_action:
+         module: rds
+         command: modify
+         instance_name: m5ig-db
+         region: us-east-2
+         vpc_security_groups:
+           - "{{postgres_sg.group_id}}"
+           - "{{vpc_sg.group_id}}"

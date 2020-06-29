@@ -1,0 +1,47 @@
+---
+- hosts: localhost
+  user: ec2-user
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+  tasks:
+    - name: "Create private network ACL"
+      ec2_vpc_nacl:
+        vpc_id: '{{ vpc.vpc.id }}'
+        name: m5-ig-private-acl
+        subnets: ["{{ private_sn_1.subnet.id }}", "{{ private_sn_2.subnet.id }}"]
+        tags:
+          Module: 5
+        ingress:
+            - [1, 'tcp', 'allow', '10.10.0.0/16', null, null, 80, 80]
+            - [2, 'tcp', 'allow', '73.42.55.46/32', null, null, 443, 443]
+            - [3, 'tcp', 'allow', '10.10.0.0/16', null, null, 5432, 5432]
+        egress:
+            - [4, 'tcp', 'allow', '10.10.0.0/16', null, null, 1024, 65535]
+        state: 'present'
+
+    - name: "Create Public Network ACL"
+      ec2_vpc_nacl:
+        vpc_id: '{{ vpc.vpc.id }}'
+        name: m5-ig-p-acl
+        subnets: ["{{ public_sn_1.subnet.id }}", "{{ public_sn_2.subnet.id }}"]
+        tags:
+          Module: 5
+        ingress:
+            - [1, 'tcp', 'allow', '0.0.0.0/0', null, null, 1024, 65535]
+            - [2, 'tcp', 'allow', '0.0.0.0/0', null, null, 22, 22]
+            - [3, 'tcp', 'allow', '73.42.55.46/32', null, null, 80, 80]
+            - [4, 'tcp', 'allow', '24.196.25.139/32', null, null, 80, 80]
+            - [5, 'tcp', 'allow', '24.196.25.139/32', null, null, 80, 80]
+            - [6, 'tcp', 'allow', '73.42.55.46/32', null, null, 443, 443]
+            - [7, 'tcp', 'allow', '24.196.25.139/32', null, null, 443, 443]
+            - [8, 'tcp', 'allow', '24.239.105.213/32', null, null, 443, 443]
+            - [9, 'tcp', 'allow', '73.42.55.46/32', null, null, 5000, 5000]
+            - [10, 'tcp', 'allow', '24.196.25.139/32', null, null, 5000, 5000]
+            - [11, 'tcp', 'allow', '24.239.105.213/32', null, null, 5000, 5000]
+        egress:
+            - [12, 'tcp', 'allow', '0.0.0.0/0', null, null, 80, 80]
+            - [13, 'tcp', 'allow', '0.0.0.0/0', null, null, 443, 443]
+            - [14, 'tcp', 'allow', '0.0.0.0/0', null, null, 1024, 65535]
+        state: 'present'

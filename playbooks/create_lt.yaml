@@ -1,0 +1,25 @@
+---
+- hosts: localhost
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+      - name: Create Launch Template
+        ec2_launch_template:
+          name: m5_lt
+          image_id: 'ami-026dea5602e368e96'
+          instance_type: t2.micro
+          tags:
+            Name: m5-ig-server
+          key_name: ghg0004module2
+          iam_instance_profile: m5-ig-role
+          network_interfaces:
+             - device_index: 0
+               associate_public_ip_address: yes
+               groups:
+               - '{{ vpc_sg.group_id }}'
+               - '{{ postgrestag_sg.group_id }}'
+               - '{{ sg_nginx.group_id }}'
+          user_data: "{{ lookup('file', './scripts/ec2-bootstrap.sh') | string | b64encode }}"
+        register: ig_lt

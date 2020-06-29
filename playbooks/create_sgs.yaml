@@ -1,0 +1,89 @@
+# creates all of the security groups for my project
+---
+- hosts: localhost
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - name: Create Devel Security Group
+      ec2_group:
+        name: m5_dev_sg
+        description: Development Security Group
+        vpc_id: '{{ vpc.vpc.id }}'
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+        state: present
+      register: sg_devel
+
+    - name: Create Nginx Security Group
+      ec2_group:
+        name: m5_nginx_sg
+        description: nginx sg for ssh and http
+        vpc_id: '{{ vpc.vpc.id }}'
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+              - 80
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+        state: present
+      register: sg_nginx
+
+    - name: Create IG-Postgres Security Group
+      ec2_group:
+        name: m5_ig_postgres_sg
+        description: traffic from tagged resources
+        vpc_id: '{{ vpc.vpc.id }}'
+        state: present
+      register: postgres_sg
+
+
+    - name: Create IG-Postgres-Tag Security Group
+      ec2_group:
+        name: m5_ig_postgres_tag_sg
+        description: Traffic to other tagged resources only
+        vpc_id: '{{ vpc.vpc.id }}'
+        rules_egress:
+          - proto: tcp
+            ports: 5432
+            group_name: m5_ig_postgres_sg
+        state: present
+      register: postgrestag_sg
+
+
+    - name: Change IG-Postgres Group to Accept Tag Traffic
+      ec2_group:
+        name: m5_ig_postgres_sg
+        description: traffic from tagged resources
+        vpc_id: '{{ vpc.vpc.id }}'
+        rules:
+          - proto: tcp
+            ports: 5432
+            group_name: m5_ig_postgres_tag_sg
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+
+    - name: Create VPC Security Group
+      ec2_group:
+        name: m5-vpc-sg
+        description: vpc inbound traffic allowed
+        vpc_id: '{{ vpc.vpc.id }}'
+        rules:
+          - proto: all
+            group_name: m5-vpc-sg
+        state: present
+      register: vpc_sg
+
+    - debug:
+        var: vpc_sg

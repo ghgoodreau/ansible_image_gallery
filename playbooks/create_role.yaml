@@ -1,0 +1,27 @@
+---
+- hosts: localhost
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - name: Create IAM role
+      iam:
+        iam_type: role
+        name: m5-ig-role
+        state: present
+        trust_policy:
+          Version: '2012-10-17'
+          Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+
+    - name: Assign JSON Policy to Role
+      iam_policy:
+        iam_type: role
+        iam_name: m5-ig-role
+        policy_name: m5-ig-s3-policy
+        state: present
+        policy_json: "{{ lookup('file', './scripts/IAMpolicy.json') }}"

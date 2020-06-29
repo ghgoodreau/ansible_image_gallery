@@ -1,0 +1,51 @@
+# creates the internet and nat gateways as well as route tables 
+---
+- hosts: localhost
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - name: Create Internet Gateway
+      ec2_vpc_igw:
+        vpc_id: '{{ vpc.vpc.id }}'
+        tags:
+          Name: mod5igw
+          # Module: 5
+        state: present
+      register: igw
+
+    - name: Create NAT Gateway
+      ec2_vpc_nat_gateway:
+        state: present
+        subnet_id: '{{ public_sn_1.subnet.id }}'
+        if_exist_do_not_create: true
+        wait: yes
+      register: natgw
+
+    - name: Create Public Route Table
+      ec2_vpc_route_table:
+        vpc_id: '{{ vpc.vpc.id }}'
+        state: present
+        tags:
+          Name: m5publicrtb
+        subnets:
+          - '{{ public_sn_1.subnet.id }}'
+          - '{{ public_sn_2.subnet.id }}'
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: '{{ igw.gateway_id }}'
+
+    - name: Create NAT Private Route Table
+      ec2_vpc_route_table:
+        vpc_id: '{{ vpc.vpc.id }}'
+        state: present
+        tags:
+          Name: m5privatertb
+        subnets:
+          - "{{ private_sn_1.subnet.id }}"
+          - "{{ private_sn_2.subnet.id }}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: '{{ natgw.nat_gateway_id }}'

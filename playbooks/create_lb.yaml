@@ -1,0 +1,60 @@
+---
+- hosts: localhost
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    # https://docs.ansible.com/ansible/latest/modules/elb_target_group_module.html
+    - elb_target_group:
+        name: m5-ig-tg
+        port: 80
+        vpc_id: '{{ vpc.vpc.id }}'
+        protocol: TCP
+        state: present
+        stickiness_type: source_ip
+        stickiness_enabled: no
+      register: m5_tg
+
+    - name: allocate 1st Load Balancer IP
+      ec2_eip_info:
+        filters:
+          tag:Name: m5-ig-eip1
+      register: elastic_ip1
+
+    - name: allocate 2nd Load Balancer IP
+      ec2_eip_info:
+        filters:
+          tag:Name: m5-ig-eip2
+      register: elastic_ip2
+      
+    - name: Obtain Domain Information
+      aws_acm_info:
+        domain_name: "ghg.rocks"
+      register: website_cert
+
+    - elb_network_lb:
+        name: m5-nlb
+        subnet_mappings:
+          - SubnetId: "{{ public_sn_1.subnet.id }}"
+            AllocationId: "{{ elastic_ip1.addresses[0].allocation_id }}"
+          - SubnetId: "{{ public_sn_2.subnet.id }}"
+            AllocationId: "{{ elastic_ip2.addresses[0].allocation_id }}"
+        listeners:
+          - Protocol: TCP
+            Port: 80
+            DefaultActions:
+              - Type: forward
+                TargetGroupName: "{{ m5_tg.target_group_name }}"
+          - Protocol: TLS
+            Port: 443
+            DefaultActions:
+              - Type: forward
+                TargetGroupName: "{{ m5_tg.target_group_name }}"
+            Certificates:
+              - CertificateArn: "{{ website_cert.certificates[0].certificate_arn }}"
+            SslPolicy: ELBSecurityPolicy-2016-08
+        state: present
+        wait: yes
+      register: m5_nlb

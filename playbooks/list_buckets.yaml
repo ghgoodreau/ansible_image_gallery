@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  gather_facts: no
+  module_defaults:
+    group/aws:
+        region: 'us-east-2'
+
+  tasks:
+    - aws_s3_bucket_info:
+      register: bucketinfo
+
+    - name: List buckets
+      debug:
+        var: bucketinfo
+        
+#bucketinfo.buckets.name
