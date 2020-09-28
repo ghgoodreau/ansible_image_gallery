@@ -1,3 +1,5 @@
+# Note: All credentials in this repository will be invalid, as the AWS account has been destroyed.
+
 # ansible_image_gallery
 
 A bootstrap ansible template to get an [image gallery web app](https://github.com/ghgoodreau/python-image-gallery) up and running on the AWS cloud in a reproducible fashion.
